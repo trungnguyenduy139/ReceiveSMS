@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.SmsManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = MainActivity.class.getSimpleName();
     private ReentrantLock reentrantLock;
     private Switch swAutoResponse;
     private LinearLayout llButtons;
@@ -27,7 +29,6 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<String> requesters;
     private ArrayAdapter<String> adapter;
     private ListView lvMessages;
-    private BroadcastReceiver broadcastReceiver;
     public static boolean isRunning;
     private final String AUTO_RESPONSE = "auto_response";
 
@@ -36,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         addControls();
-        HandleEvents();
+        handleEvents();
         addVariables();
     }
 
@@ -45,13 +46,14 @@ public class MainActivity extends AppCompatActivity {
         reentrantLock = new ReentrantLock();
         adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, requesters);
         lvMessages.setAdapter(adapter);
+        ArrayList<String> list = getIntent().getStringArrayListExtra(SmsBroadcastReceiver.LIST_ADDRESS);
+        if (list != null) processReceiveListAddress(list);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         isRunning = true;
-        if (broadcastReceiver == null) initBroadcastReceiver();
         IntentFilter intentFilter = new IntentFilter(SmsBroadcastReceiver.SMS_FORWARD_BROADCAST_RECEIVER);
         registerReceiver(broadcastReceiver, intentFilter);
         SharedPreferences preferences = getSharedPreferences(AUTO_RESPONSE, MODE_PRIVATE);
@@ -60,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
         if (isChecked)
             llButtons.setVisibility(View.GONE);
 
-        initBroadcastReceiver();
     }
 
     private void addControls() {
@@ -104,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
             respondAll(true); // true if you SAFE and false if not
     }
 
-    public void HandleEvents() {
+    public void handleEvents() {
         btnSafe.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -131,17 +132,16 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void initBroadcastReceiver() {
-        broadcastReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                ArrayList<String> list =
-                        intent.getStringArrayListExtra(SmsBroadcastReceiver.LIST_ADDRESS);
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ArrayList<String> list =
+                    intent.getStringArrayListExtra(SmsBroadcastReceiver.LIST_ADDRESS);
 
-                processReceiveListAddress(list);
-            }
-        };
-    }
+            processReceiveListAddress(list);
+        }
+    };
+
 
     @Override
     protected void onStop() {
