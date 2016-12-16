@@ -135,6 +135,7 @@ public class MainActivity extends AppCompatActivity {
     BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "Receive Broadcast");
             ArrayList<String> list =
                     intent.getStringArrayListExtra(SmsBroadcastReceiver.LIST_ADDRESS);
 
